@@ -33,8 +33,25 @@ async function bootstrap() {
     .addBearerAuth()
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
+
+  // Serve Swagger UI on /api/v1/docs (adjusted for prefix)
   const swaggerPath = `${apiPrefix}/docs`.replace(/\/\/$/, '');
-  SwaggerModule.setup(swaggerPath, app, document);
+
+  // Use external CDN assets for Vercel compatibility
+  SwaggerModule.setup(swaggerPath, app, document, {
+      // customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.7/swagger-ui.min.css',
+      // customJs: [
+      //     `https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.7/swagger-ui-bundle.min.js`,
+      //     `https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.7/swagger-ui-standalone-preset.min.js`,
+      // ],
+      // Use unpkg for potentially more up-to-date versions matching swagger-ui-dist used by NestJS
+       customCssUrl:
+         'https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css',
+       customJs: [
+         `https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js`,
+         `https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js`,
+       ],
+  });
   // ---
 
   app.useGlobalFilters(new HttpExceptionFilter());
