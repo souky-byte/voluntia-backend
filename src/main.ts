@@ -9,8 +9,36 @@ import helmet from 'helmet';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Use Helmet for security headers
-  app.use(helmet());
+  // Use Helmet with customized CSP for Swagger CDN
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: [`'self'`],
+          scriptSrc: [
+            `'self'`,
+            `'unsafe-inline'`,
+            'https://unpkg.com',
+          ], // Allow scripts from self, inline, and unpkg
+          styleSrc: [
+            `'self'`,
+            `'unsafe-inline'`,
+            'https://unpkg.com',
+          ], // Allow styles from self, inline, and unpkg
+          imgSrc: [
+            `'self'`,
+            'data:',
+            'https://unpkg.com',
+          ], // Allow images from self, data URIs, and unpkg (for Swagger UI assets)
+          connectSrc: [`'self'`], // Adjust if Swagger needs to connect elsewhere
+          // Add other directives as needed, be as strict as possible
+        },
+      },
+      // Keep other helmet defaults or configure as needed
+      crossOriginEmbedderPolicy: false, // Might be needed depending on CDN resources
+      crossOriginResourcePolicy: { policy: "cross-origin" }, // Might be needed
+    }),
+  );
 
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 3000);
