@@ -12,6 +12,7 @@ import { SharedModule } from './shared/shared.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ProfileModule } from './profile/profile.module';
+import { GroupModule } from './group/group.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { ProfileModule } from './profile/profile.module';
     AdminApplicationModule,
     SharedModule,
     ProfileModule,
+    GroupModule,
     // Other modules will be added here later
   ],
   controllers: [AppController],

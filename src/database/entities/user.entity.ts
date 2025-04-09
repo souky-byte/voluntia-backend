@@ -11,10 +11,13 @@ import {
   JoinTable,
   BeforeInsert,
   BeforeUpdate,
+  OneToMany,
 } from 'typeorm';
 import { Role } from './role.entity';
 import { Application } from './application.entity';
 import * as bcrypt from 'bcrypt';
+import { Group } from './group.entity';
+import { GroupMembership } from './group-membership.entity';
 // Import new entities for Group feature (will be created later)
 // import { Group } from './group.entity';
 // import { GroupMembership } from './group-membership.entity';
@@ -73,12 +76,12 @@ export class User {
   tags: string[] | null;
   // ---
 
-  // --- New Group Relations (add later when entities exist) ---
-  // @OneToMany(() => Group, (group) => group.createdByUser)
-  // createdGroups: Group[];
+  // --- New Group Relations ---
+  @OneToMany(() => Group, (group) => group.createdByUser)
+  createdGroups: Group[];
 
-  // @OneToMany(() => GroupMembership, (membership) => membership.user)
-  // groupMemberships: GroupMembership[];
+  @OneToMany(() => GroupMembership, (membership) => membership.user)
+  groupMemberships: GroupMembership[];
   // ---
 
   @CreateDateColumn({ name: 'created_at' })

@@ -22,7 +22,7 @@ const mapUserToAdminViewDto = (user: User): UserAdminViewDto => ({
     name: user.name,
     email: user.email,
     phone_number: user.phone_number,
-    created_at: user.created_at,
+    created_at: user.createdAt,
     email_verified_at: user.email_verified_at,
     roles: user.roles ? user.roles.map(role => ({ slug: role.slug, name: role.name })) : [],
     // Map other fields as needed
