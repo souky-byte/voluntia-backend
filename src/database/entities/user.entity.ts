@@ -11,10 +11,16 @@ import {
   JoinTable,
   BeforeInsert,
   BeforeUpdate,
+  OneToMany,
 } from 'typeorm';
 import { Role } from './role.entity';
 import { Application } from './application.entity';
 import * as bcrypt from 'bcrypt';
+import { Group } from './group.entity';
+import { GroupMembership } from './group-membership.entity';
+// Import new entities for Group feature (will be created later)
+// import { Group } from './group.entity';
+// import { GroupMembership } from './group-membership.entity';
 
 @Entity('users')
 export class User {
@@ -56,11 +62,33 @@ export class User {
   // One user (admin) can process many applications
   // This relation is defined on the Application entity (processedByAdmin)
 
-  @CreateDateColumn()
-  created_at: Date;
+  // --- New Profile Fields ---
+  @Column({ type: 'varchar', length: 512, nullable: true, name: 'avatar_url' })
+  avatarUrl: string | null;
 
-  @UpdateDateColumn()
-  updated_at: Date;
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  location: string | null;
+
+  @Column({ type: 'text', nullable: true })
+  bio: string | null;
+
+  @Column({ type: 'simple-array', nullable: true })
+  tags: string[] | null;
+  // ---
+
+  // --- New Group Relations ---
+  @OneToMany(() => Group, (group) => group.createdByUser)
+  createdGroups: Group[];
+
+  @OneToMany(() => GroupMembership, (membership) => membership.user)
+  groupMemberships: GroupMembership[];
+  // ---
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 
   @DeleteDateColumn({ select: false }) // Hide soft-deleted records by default
   deleted_at?: Date;

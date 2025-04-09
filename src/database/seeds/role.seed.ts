@@ -4,10 +4,17 @@ import { User } from '../entities/user.entity';
 import { RoleType } from '../../auth/enums/role-type.enum';
 import * as bcrypt from 'bcrypt';
 import { DataSource } from 'typeorm';
+import { GroupRole } from '../entities/group-role.entity';
 
 interface RoleSeed {
   name: string;
   slug: RoleType;
+  description?: string;
+}
+
+interface GroupRoleSeed {
+  name: string;
+  slug: string;
   description?: string;
 }
 
@@ -34,6 +41,11 @@ const rolesToSeed: RoleSeed[] = [
   },
 ];
 
+const groupRolesToSeed: GroupRoleSeed[] = [
+  { name: 'Leader', slug: 'leader', description: 'Manages the group and its members' },
+  { name: 'Member', slug: 'member', description: 'Regular member of the group' },
+];
+
 export const ADMIN_EMAIL = 'admin@voluntia.app';
 export const ADMIN_PASSWORD = 'ChangeMe123!';
 
@@ -49,8 +61,10 @@ export async function seedDatabase(dataSourceInstance?: DataSource): Promise<voi
 
   const roleRepository = dataSourceToUse.getRepository(Role);
   const userRepository = dataSourceToUse.getRepository(User);
+  const groupRoleRepository = dataSourceToUse.getRepository(GroupRole);
 
   const seededRoles: { [key in RoleType]?: Role } = {};
+  console.log('Seeding: Starting role seeding...');
   for (const roleData of rolesToSeed) {
     let role = await roleRepository.findOneBy({ slug: roleData.slug });
     if (!role) {
@@ -62,8 +76,22 @@ export async function seedDatabase(dataSourceInstance?: DataSource): Promise<voi
     }
     seededRoles[roleData.slug] = role;
   }
-  // console.log('Seeding: Role seeding finished.');
+  console.log('Seeding: Role seeding finished.');
 
+  console.log('Seeding: Starting group role seeding...');
+  for (const groupRoleData of groupRolesToSeed) {
+    let groupRole = await groupRoleRepository.findOneBy({ slug: groupRoleData.slug });
+    if (!groupRole) {
+      groupRole = groupRoleRepository.create(groupRoleData);
+      await groupRoleRepository.save(groupRole);
+      console.log(`Seeding: Created group role: ${groupRoleData.name} (Slug: ${groupRoleData.slug})`);
+    } else {
+      // console.log(`Seeding: Group role already exists: ${groupRoleData.name}`);
+    }
+  }
+  console.log('Seeding: Group role seeding finished.');
+
+  console.log('Seeding: Starting admin user seeding...');
   let adminUser = await userRepository.findOne({ where: { email: ADMIN_EMAIL }, relations: ['roles'] });
 
   if (!adminUser) {
@@ -90,7 +118,7 @@ export async function seedDatabase(dataSourceInstance?: DataSource): Promise<voi
         console.log(`Seeding: Assigned admin role to existing user: ${ADMIN_EMAIL}`);
     }
   }
-  // console.log('Seeding: Admin user seeding finished.');
+  console.log('Seeding: Admin user seeding finished.');
 
   console.log('Seeding finished.');
   if (!isExternalDS) {
