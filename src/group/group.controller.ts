@@ -161,7 +161,11 @@ export class GroupController {
       const membership = await this.groupService.joinGroup(groupId, req.user.sub);
       // Need to reload membership with relations for mapping
       const reloadedMembership = await this.groupService.findGroupMembers(groupId).then(members => members.find(m => m.id === membership.id)!);
-      return mapMembershipToMemberDto(reloadedMembership);
+      const mapped = mapMembershipToMemberDto(reloadedMembership);
+      if (!mapped) {
+          throw new InternalServerErrorException('Failed to map newly created membership after join.');
+      }
+      return mapped;
   }
 
   @Delete(':groupId/leave')
