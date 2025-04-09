@@ -54,3 +54,12 @@ pids
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Misc
+.cursorrules # Ignore Cursor rules
+
+# Implementation Plans
+IMPLEMENTATION_PLAN.md
+IMPLEMENTATION_PLAN_FEATURES.md
+
+# Swagger Spec
