@@ -10,7 +10,15 @@ import { User } from '../database/entities/user.entity';
 import { Role } from '../database/entities/role.entity';
 import { RoleType } from '../auth/enums/role-type.enum';
 import * as bcrypt from 'bcrypt';
-// DTOs would be needed for a UserController, e.g., CreateUserDto, UpdateUserDto
+import { UserQueryDto } from './dto/admin/user-query.dto';
+
+// Structure for paginated user results (can be moved to a shared location)
+export interface PaginatedUsersResult {
+    data: User[];
+    total: number;
+    page: number;
+    limit: number;
+}
 
 @Injectable()
 export class UserService {
@@ -31,7 +39,8 @@ export class UserService {
     // Use addSelect to explicitly include the password field
     return this.userRepository.findOne({
       where: { email },
-      select: ['id', 'name', 'email', 'password', 'phone_number', 'email_verified_at', 'created_at', 'updated_at'], // Select all needed fields + password
+      // Select properties, TypeORM handles mapping to columns
+      select: ['id', 'name', 'email', 'password', 'phone_number', 'email_verified_at', 'createdAt', 'updatedAt'],
       relations: ['roles'], // Ensure roles are loaded
     });
   }
@@ -57,6 +66,20 @@ export class UserService {
       throw new NotFoundException(`User with ID ${id} not found`);
     }
     return user;
+  }
+
+  /**
+   * Finds a user by ID, including their password.
+   * @param id - The user's ID.
+   * @returns The user entity with password or null if not found.
+   */
+  async findOneByIdWithPassword(id: number): Promise<User | null> {
+    // Use query builder to select password explicitly
+    return this.userRepository.createQueryBuilder('user')
+        .addSelect('user.password') // Select the password field
+        .leftJoinAndSelect('user.roles', 'role')
+        .where('user.id = :id', { id })
+        .getOne(); // Use getOne() instead of findOne for query builder
   }
 
   /**
@@ -120,6 +143,60 @@ export class UserService {
     // Password will be hashed automatically by the @BeforeUpdate hook in the User entity
     user.password = password;
     return this.userRepository.save(user);
+  }
+
+  /**
+   * Saves a user entity.
+   * Can be used after modifying a user object.
+   * @param user - The user entity to save.
+   * @returns The saved user entity.
+   */
+  async saveUser(user: User): Promise<User> {
+    try {
+        return await this.userRepository.save(user);
+    } catch (error) {
+        // Add proper logging
+        throw new InternalServerErrorException('Failed to save user data.');
+    }
+  }
+
+  /**
+   * Finds users with filtering by role slug and pagination.
+   * @param queryDto - DTO containing filter and pagination options.
+   * @returns Paginated list of users.
+   */
+  async findUsersByRole(queryDto: UserQueryDto): Promise<PaginatedUsersResult> {
+    const { roleSlug, search, page = 1, limit = 10 } = queryDto;
+    const skip = (page - 1) * limit;
+
+    const queryBuilder = this.userRepository.createQueryBuilder('user')
+      .leftJoinAndSelect('user.roles', 'role') // Join roles
+      .orderBy('user.created_at', 'DESC')
+      .skip(skip)
+      .take(limit);
+
+    if (roleSlug) {
+      queryBuilder.andWhere('role.slug = :roleSlug', { roleSlug });
+    }
+
+    if (search) {
+      queryBuilder.andWhere('(user.name ILIKE :search OR user.email ILIKE :search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    try {
+      const [users, total] = await queryBuilder.getManyAndCount();
+      return {
+        data: users,
+        total: total,
+        page: Number(page),
+        limit: Number(limit),
+      };
+    } catch (error) {
+      // Add logging here
+      throw new InternalServerErrorException('Failed to retrieve users.');
+    }
   }
 
     // Add other methods as needed (updateUser, deleteUser, findUserRoles etc.)

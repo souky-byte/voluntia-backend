@@ -11,6 +11,7 @@ import { AdminApplicationModule } from './admin-application/admin-application.mo
 import { SharedModule } from './shared/shared.module';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { ProfileModule } from './profile/profile.module';
 
 @Module({
   imports: [
@@ -36,20 +37,28 @@ import { APP_GUARD } from '@nestjs/core';
         };
       },
     }),
-    // Rate Limiting Configuration
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60000, // Time window in milliseconds (e.g., 60 seconds)
-        limit: 10,  // Max requests per window per IP
-      },
-      // You can define multiple throttlers (e.g., stricter limits for login)
-    ]),
+    // Rate Limiting Configuration - Dynamic based on environment
+    ThrottlerModule.forRootAsync({
+        imports: [ConfigModule],
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => {
+            const isProduction = config.get<string>('NODE_ENV') === 'production';
+            return [
+                {
+                    // Stricter limits for production, looser for development
+                    ttl: isProduction ? 60000 : 1000, // 1 minute (prod) vs 1 second (dev)
+                    limit: isProduction ? 20 : 1000, // 20 requests/min (prod) vs 1000/sec (dev)
+                },
+            ];
+        },
+    }),
     CoreModule,
     AuthModule,
     UserModule,
     PublicApplicationModule,
     AdminApplicationModule,
     SharedModule,
+    ProfileModule,
     // Other modules will be added here later
   ],
   controllers: [AppController],
