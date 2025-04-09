@@ -9,7 +9,8 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
-import { GroupMembership } from './group-membership.entity'; // Verify this import
+// import { GroupMembership } from './group-membership.entity'; // Verify this import
+import { GroupMembership } from '@database/entities/group-membership.entity'; // Use path alias
 
 @Entity('groups')
 export class Group {

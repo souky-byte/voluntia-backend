@@ -6,6 +6,7 @@ import {
   InternalServerErrorException,
   Logger,
   BadRequestException,
+  OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource, SelectQueryBuilder } from 'typeorm';
@@ -26,7 +27,7 @@ export interface PaginatedGroupsResult {
 }
 
 @Injectable()
-export class GroupService {
+export class GroupService implements OnModuleInit {
   private readonly logger = new Logger(GroupService.name);
   private readonly DEFAULT_MEMBER_ROLE_SLUG = 'member';
   private readonly LEADER_ROLE_SLUG = 'leader';
@@ -42,6 +43,24 @@ export class GroupService {
     private readonly userRepository: Repository<User>,
     private readonly dataSource: DataSource,
   ) {}
+
+  // Temporary method to ensure roles exist on startup for manual testing
+  async onModuleInit() {
+      this.logger.log('Ensuring default group roles exist...');
+      const rolesToEnsure = [
+          { name: 'Leader', slug: this.LEADER_ROLE_SLUG, description: 'Manages the group and its members' },
+          { name: 'Member', slug: this.DEFAULT_MEMBER_ROLE_SLUG, description: 'Regular member of the group' },
+      ];
+      for (const roleData of rolesToEnsure) {
+          let role = await this.groupRoleRepository.findOneBy({ slug: roleData.slug });
+          if (!role) {
+              role = this.groupRoleRepository.create(roleData);
+              await this.groupRoleRepository.save(role);
+              this.logger.log(`Created missing group role: ${roleData.name}`);
+          }
+      }
+      this.logger.log('Default group roles checked.');
+  }
 
   // --- Helper Methods ---
 
@@ -67,16 +86,18 @@ export class GroupService {
   // --- Core Service Methods ---
 
   async createGroup(userId: number, dto: CreateGroupDto): Promise<Group> {
+    // Find creator and leader role BEFORE transaction
+    const creator = await this.userRepository.findOneBy({ id: userId });
+    if (!creator) throw new NotFoundException(`User with ID ${userId} not found`);
+
+    const leaderRole = await this.findGroupRoleOrFail(this.LEADER_ROLE_SLUG);
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      const creator = await queryRunner.manager.findOneBy(User, { id: userId });
-      if (!creator) throw new NotFoundException(`User with ID ${userId} not found`);
-
-      const leaderRole = await this.findGroupRoleOrFail(this.LEADER_ROLE_SLUG);
-
+      // Use pre-fetched creator and leaderRole
       // 1. Create Group
       const newGroup = queryRunner.manager.create(Group, {
           ...dto,

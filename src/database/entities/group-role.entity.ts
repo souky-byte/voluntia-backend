@@ -5,7 +5,8 @@ import {
   Unique,
   OneToMany,
 } from 'typeorm';
-import { GroupMembership } from './group-membership.entity'; // Verify this import
+// import { GroupMembership } from './group-membership.entity'; // Verify this import
+import { GroupMembership } from '@database/entities/group-membership.entity'; // Use path alias
 
 @Entity('group_roles')
 @Unique(['slug']) // Ensure slugs are unique

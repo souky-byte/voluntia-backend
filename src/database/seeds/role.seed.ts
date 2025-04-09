@@ -64,6 +64,7 @@ export async function seedDatabase(dataSourceInstance?: DataSource): Promise<voi
   const groupRoleRepository = dataSourceToUse.getRepository(GroupRole);
 
   const seededRoles: { [key in RoleType]?: Role } = {};
+  console.log('Seeding: Starting role seeding...');
   for (const roleData of rolesToSeed) {
     let role = await roleRepository.findOneBy({ slug: roleData.slug });
     if (!role) {
@@ -77,19 +78,20 @@ export async function seedDatabase(dataSourceInstance?: DataSource): Promise<voi
   }
   console.log('Seeding: Role seeding finished.');
 
-  console.log('Seeding group roles...');
+  console.log('Seeding: Starting group role seeding...');
   for (const groupRoleData of groupRolesToSeed) {
     let groupRole = await groupRoleRepository.findOneBy({ slug: groupRoleData.slug });
     if (!groupRole) {
       groupRole = groupRoleRepository.create(groupRoleData);
       await groupRoleRepository.save(groupRole);
-      console.log(`Seeding: Created group role: ${groupRoleData.name}`);
+      console.log(`Seeding: Created group role: ${groupRoleData.name} (Slug: ${groupRoleData.slug})`);
     } else {
       // console.log(`Seeding: Group role already exists: ${groupRoleData.name}`);
     }
   }
-  console.log('Group role seeding finished.');
+  console.log('Seeding: Group role seeding finished.');
 
+  console.log('Seeding: Starting admin user seeding...');
   let adminUser = await userRepository.findOne({ where: { email: ADMIN_EMAIL }, relations: ['roles'] });
 
   if (!adminUser) {
