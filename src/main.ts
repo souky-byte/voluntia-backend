@@ -5,6 +5,7 @@ import { HttpExceptionFilter } from './core/filters/http-exception.filter';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+import * as fs from 'fs'; // Import Node.js file system module
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -62,24 +63,20 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
 
-  // Serve Swagger UI on /api/v1/docs (adjusted for prefix)
+  // Serve Swagger UI on /api/v1/docs
   const swaggerPath = `${apiPrefix}/docs`.replace(/\/\/$/, '');
-
-  // Use external CDN assets for Vercel compatibility
   SwaggerModule.setup(swaggerPath, app, document, {
-      // customCssUrl: 'https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.7/swagger-ui.min.css',
-      // customJs: [
-      //     `https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.7/swagger-ui-bundle.min.js`,
-      //     `https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.11.7/swagger-ui-standalone-preset.min.js`,
-      // ],
-      // Use unpkg for potentially more up-to-date versions matching swagger-ui-dist used by NestJS
-       customCssUrl:
-         'https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css',
-       customJs: [
-         `https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js`,
-         `https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js`,
-       ],
+    customCssUrl:
+      'https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui.css',
+    customJs: [
+      `https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-bundle.js`,
+      `https://unpkg.com/swagger-ui-dist@5.11.0/swagger-ui-standalone-preset.js`,
+    ],
   });
+
+  // --- Write Swagger spec to file ---
+  fs.writeFileSync("./swagger-spec.json", JSON.stringify(document, null, 2));
+  console.log('Swagger specification saved to swagger-spec.json');
   // ---
 
   app.useGlobalFilters(new HttpExceptionFilter());
