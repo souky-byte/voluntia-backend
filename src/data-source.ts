@@ -9,6 +9,9 @@ dotenv.config(); // Load environment variables from .env file
 import { User } from './database/entities/user.entity';
 import { Role } from './database/entities/role.entity';
 import { Application } from './database/entities/application.entity';
+import { Group } from './database/entities/group.entity';
+import { GroupRole } from './database/entities/group-role.entity';
+import { GroupMembership } from './database/entities/group-membership.entity';
 
 const useSsl: boolean = process.env.DATABASE_URL?.includes('sslmode=require') ?? false;
 
@@ -16,7 +19,7 @@ export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   url: process.env.DATABASE_URL,
   // entities: [__dirname + '/../**/*.entity{.ts,.js}'], // Use explicit imports instead
-  entities: [User, Role, Application],
+  entities: [User, Role, Application, Group, GroupRole, GroupMembership],
   migrations: [__dirname + '/database/migrations/*{.ts,.js}'], // Adjusted path
   migrationsTableName: 'migrations',
   synchronize: false, // Set back to false for production safety
