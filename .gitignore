@@ -56,8 +56,10 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Misc
-.DS_Store
-.env
+.cursorrules # Ignore Cursor rules
+
+# Implementation Plans
+IMPLEMENTATION_PLAN.md
+IMPLEMENTATION_PLAN_FEATURES.md
 
 # Swagger Spec
-swagger-spec.json
