@@ -11,6 +11,7 @@ import { Role } from '../database/entities/role.entity';
 import { RoleType } from '../auth/enums/role-type.enum';
 import * as bcrypt from 'bcrypt';
 import { UserQueryDto } from './dto/admin/user-query.dto';
+import { Logger } from '@nestjs/common';
 
 // Structure for paginated user results (can be moved to a shared location)
 export interface PaginatedUsersResult {
@@ -22,6 +23,8 @@ export interface PaginatedUsersResult {
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -171,7 +174,7 @@ export class UserService {
 
     const queryBuilder = this.userRepository.createQueryBuilder('user')
       .leftJoinAndSelect('user.roles', 'role') // Join roles
-      .orderBy('user.created_at', 'DESC')
+      .orderBy('user.createdAt', 'DESC')
       .skip(skip)
       .take(limit);
 
@@ -194,7 +197,7 @@ export class UserService {
         limit: Number(limit),
       };
     } catch (error) {
-      // Add logging here
+      this.logger.error(`Failed to retrieve users. QueryDto: ${JSON.stringify(queryDto)}`, error.stack);
       throw new InternalServerErrorException('Failed to retrieve users.');
     }
   }

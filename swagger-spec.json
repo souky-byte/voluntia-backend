@@ -1,0 +1,1967 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/api/v1": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "description": "Authenticates using email and password, returns a JWT token.",
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          },
+          "429": {
+            "description": "Too many login attempts"
+          }
+        },
+        "summary": "Login for admin users",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/auth/profile": {
+      "get": {
+        "description": "Returns the payload of the authenticated user's JWT.",
+        "operationId": "AuthController_getProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User profile data (JWT payload)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized (invalid or missing token)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user profile",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "description": "Retrieves users with filtering by role and pagination. Response detail depends on user role.",
+        "operationId": "UsersController_findUsers",
+        "parameters": [
+          {
+            "name": "roleSlug",
+            "required": false,
+            "in": "query",
+            "description": "Filter by user role slug",
+            "schema": {
+              "enum": [
+                "admin",
+                "community",
+                "supporter",
+                "member"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search term for user name or email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of users (detail depends on role)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PaginatedUsersResponseDto"
+                    },
+                    {
+                      "$ref": "#/components/schemas/PaginatedUsersBasicResponseDto"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden (Requires Admin, Member, or Supporter role)"
+          },
+          "500": {
+            "description": "Error retrieving users"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get list of users",
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/v1/applications": {
+      "post": {
+        "description": "Accepts applicant details and creates a user and application record.",
+        "operationId": "PublicApplicationController_submitApplication",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateApplicationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Application submitted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationPublicResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data (validation failed - see response message for details)."
+          },
+          "409": {
+            "description": "Email address already exists."
+          },
+          "429": {
+            "description": "Too many requests"
+          },
+          "500": {
+            "description": "Internal server error during application processing."
+          }
+        },
+        "summary": "Submit a new membership application",
+        "tags": [
+          "Applications (Public)"
+        ]
+      }
+    },
+    "/api/v1/admin/applications": {
+      "get": {
+        "description": "Retrieves applications with filtering and pagination.",
+        "operationId": "AdminApplicationController_findAll",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter by application status",
+            "schema": {
+              "enum": [
+                "pending",
+                "call_scheduled",
+                "approved",
+                "declined"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "required": false,
+            "in": "query",
+            "description": "Search term for applicant name or email",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number",
+            "schema": {
+              "minimum": 1,
+              "default": 1,
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 10,
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of applications",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedApplicationResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "429": {
+            "description": "Too many requests"
+          },
+          "500": {
+            "description": "Error retrieving applications"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get paginated list of applications (admin)",
+        "tags": [
+          "Applications (Admin)"
+        ]
+      }
+    },
+    "/api/v1/admin/applications/{id}": {
+      "get": {
+        "description": "Retrieves full details for a specific application.",
+        "operationId": "AdminApplicationController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Numeric ID of the application to retrieve",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Application details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationAdminDetailDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Application not found"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get application details (admin)",
+        "tags": [
+          "Applications (Admin)"
+        ]
+      }
+    },
+    "/api/v1/admin/applications/{id}/schedule-call": {
+      "put": {
+        "description": "Updates the application status to call_scheduled and sets the date/time.",
+        "operationId": "AdminApplicationController_scheduleCall",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Numeric ID of the application",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleCallDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Call scheduled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationAdminDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid application state or input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Application not found"
+          },
+          "429": {
+            "description": "Too many requests"
+          },
+          "500": {
+            "description": "Error scheduling call"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Schedule a call for an application (admin)",
+        "tags": [
+          "Applications (Admin)"
+        ]
+      }
+    },
+    "/api/v1/admin/applications/{id}/approve": {
+      "put": {
+        "description": "Approves the application, assigns role, sets initial password, and sends welcome email.",
+        "operationId": "AdminApplicationController_approveApplication",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Numeric ID of the application",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Application approved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationAdminDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid application state"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Application not found"
+          },
+          "429": {
+            "description": "Too many requests"
+          },
+          "500": {
+            "description": "Error approving application (check server logs)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Approve an application (admin)",
+        "tags": [
+          "Applications (Admin)"
+        ]
+      }
+    },
+    "/api/v1/admin/applications/{id}/decline": {
+      "put": {
+        "description": "Updates the application status to declined.",
+        "operationId": "AdminApplicationController_declineApplication",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Numeric ID of the application",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Application declined successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApplicationAdminDetailDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid application state"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Application not found"
+          },
+          "429": {
+            "description": "Too many requests"
+          },
+          "500": {
+            "description": "Error declining application"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Decline an application (admin)",
+        "tags": [
+          "Applications (Admin)"
+        ]
+      }
+    },
+    "/api/v1/admin/applications/admin/test": {
+      "get": {
+        "operationId": "AdminApplicationController_adminTest",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Admin access confirmed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "message": "Admin access confirmed!"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Smoke test for admin access",
+        "tags": [
+          "Applications (Admin)"
+        ]
+      }
+    },
+    "/api/v1/profile/me": {
+      "get": {
+        "operationId": "ProfileController_getMyProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "User profile data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get current user profile",
+        "tags": [
+          "Profile"
+        ]
+      },
+      "put": {
+        "operationId": "ProfileController_updateMyProfile",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProfileDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update current user profile",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/api/v1/profile/me/password": {
+      "put": {
+        "operationId": "ProfileController_changeMyPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password changed successfully"
+          },
+          "400": {
+            "description": "Invalid input data (e.g., passwords mismatch)"
+          },
+          "401": {
+            "description": "Incorrect current password"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change current user password",
+        "tags": [
+          "Profile"
+        ]
+      }
+    },
+    "/api/v1/groups": {
+      "post": {
+        "description": "Creates a new group and sets the creator as the first leader.",
+        "operationId": "GroupController_createGroup",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Group created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupBasicResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data."
+          },
+          "401": {
+            "description": "Unauthorized."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a new group",
+        "tags": [
+          "Groups"
+        ]
+      },
+      "get": {
+        "description": "Retrieves a paginated list of groups.",
+        "operationId": "GroupController_findAllGroups",
+        "parameters": [
+          {
+            "name": "page",
+            "required": false,
+            "in": "query",
+            "description": "Page number",
+            "schema": {
+              "example": 1,
+              "type": "number"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Items per page",
+            "schema": {
+              "maximum": 100,
+              "example": 10,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated list of groups.",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get list of groups",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/api/v1/groups/{groupId}": {
+      "get": {
+        "description": "Retrieves details of a specific group including members.",
+        "operationId": "GroupController_findGroupById",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Group details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupDetailResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "404": {
+            "description": "Group not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Get group details",
+        "tags": [
+          "Groups"
+        ]
+      },
+      "put": {
+        "description": "Updates the name or description of a group. Requires leader role.",
+        "operationId": "GroupController_updateGroup",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGroupDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Group updated successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupBasicResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "403": {
+            "description": "Forbidden. Only leaders can update."
+          },
+          "404": {
+            "description": "Group not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update group details",
+        "tags": [
+          "Groups"
+        ]
+      },
+      "delete": {
+        "description": "Deletes a group and all its memberships. Requires leader role.",
+        "operationId": "GroupController_deleteGroup",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Group deleted successfully."
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "403": {
+            "description": "Forbidden. Only leaders can delete."
+          },
+          "404": {
+            "description": "Group not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a group",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/api/v1/groups/{groupId}/join": {
+      "post": {
+        "description": "Adds the current user as a member to the specified group.",
+        "operationId": "GroupController_joinGroup",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successfully joined group.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupMemberResponseDto"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "404": {
+            "description": "Group not found."
+          },
+          "409": {
+            "description": "User is already a member."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Join a group",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/api/v1/groups/{groupId}/leave": {
+      "delete": {
+        "description": "Removes the current user from the specified group.",
+        "operationId": "GroupController_leaveGroup",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successfully left group."
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "404": {
+            "description": "Group or membership not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Leave a group",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/api/v1/groups/{groupId}/members": {
+      "get": {
+        "description": "Retrieves a list of members for a specific group.",
+        "operationId": "GroupController_findGroupMembers",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of group members.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupMemberResponseDto"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "404": {
+            "description": "Group not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List group members",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/api/v1/groups/{groupId}/members/{userId}/role": {
+      "put": {
+        "description": "Changes the role of a member within a group. Requires leader role.",
+        "operationId": "GroupController_updateMemberRole",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "ID of the user whose role is being changed",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Member role updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupMemberResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid role slug or cannot change own role."
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "403": {
+            "description": "Forbidden. Only leaders can change roles."
+          },
+          "404": {
+            "description": "Group, user, or membership not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update member role",
+        "tags": [
+          "Groups"
+        ]
+      }
+    },
+    "/api/v1/groups/{groupId}/members/{userId}": {
+      "delete": {
+        "description": "Removes a member from a group. Requires leader role.",
+        "operationId": "GroupController_removeMember",
+        "parameters": [
+          {
+            "name": "groupId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "userId",
+            "required": true,
+            "in": "path",
+            "description": "ID of the user to remove",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Member removed successfully."
+          },
+          "400": {
+            "description": "Cannot remove self."
+          },
+          "401": {
+            "description": "Unauthorized."
+          },
+          "403": {
+            "description": "Forbidden. Only leaders can remove members."
+          },
+          "404": {
+            "description": "Group, user, or membership not found."
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Remove member from group",
+        "tags": [
+          "Groups"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Voluntia API",
+    "description": "API documentation for the Voluntia platform backend",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@voluntia.example",
+            "description": "User email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "example": "Str0ngP@ssw0rd",
+            "description": "User password"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "LoginResponseDto": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "description": "JWT access token for authenticating subsequent requests",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          }
+        },
+        "required": [
+          "access_token"
+        ]
+      },
+      "SupporterAdditionalDataDto": {
+        "type": "object",
+        "properties": {
+          "city": {
+            "type": "string",
+            "example": "Prague",
+            "description": "City of residence"
+          }
+        },
+        "required": [
+          "city"
+        ]
+      },
+      "MemberAdditionalDataDto": {
+        "type": "object",
+        "properties": {
+          "full_address": {
+            "type": "string",
+            "maxLength": 500,
+            "example": "Main Street 123, 11000 Prague 1",
+            "description": "Full residential address"
+          },
+          "date_of_birth": {
+            "type": "string",
+            "example": "1990-12-31",
+            "description": "Date of birth (YYYY-MM-DD)"
+          },
+          "profession": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "Software Developer",
+            "description": "Profession"
+          }
+        },
+        "required": [
+          "full_address",
+          "date_of_birth"
+        ]
+      },
+      "CreateApplicationDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "example": "John Doe",
+            "description": "Full name of the applicant"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "john.doe@example.com",
+            "description": "Contact email address"
+          },
+          "desiredMembershipType": {
+            "enum": [
+              "community",
+              "supporter",
+              "member"
+            ],
+            "type": "string",
+            "description": "Desired type of membership"
+          },
+          "motivation": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "Motivation for joining (optional for Community, required otherwise)"
+          },
+          "phone_number": {
+            "type": "string",
+            "example": "+420123456789",
+            "description": "Phone number (required for Supporters and Members)"
+          },
+          "gdprConsent": {
+            "type": "boolean",
+            "description": "Confirmation of GDPR consent (frontend handles display)"
+          },
+          "supporterStatutesConsent": {
+            "type": "boolean",
+            "description": "Confirmation of agreement with supporter statutes (required for Supporters)"
+          },
+          "partyStatutesConsent": {
+            "type": "boolean",
+            "description": "Confirmation of agreement with party statutes (required for Members)"
+          },
+          "noOtherPartyMembership": {
+            "type": "boolean",
+            "description": "Declaration of no other party membership (required for Members)"
+          },
+          "additionalDataSupporter": {
+            "description": "Additional data specific to the membership type (Required for Supporter)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SupporterAdditionalDataDto"
+              }
+            ]
+          },
+          "additionalDataMember": {
+            "description": "Additional data specific to the membership type (Required for Member)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MemberAdditionalDataDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "email",
+          "desiredMembershipType",
+          "gdprConsent"
+        ]
+      },
+      "ApplicationPublicResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1,
+            "description": "Unique ID of the created application"
+          },
+          "userId": {
+            "type": "number",
+            "example": 1,
+            "description": "Unique ID of the created user associated with the application"
+          },
+          "desiredMembershipType": {
+            "enum": [
+              "community",
+              "supporter",
+              "member"
+            ],
+            "type": "string",
+            "example": "member",
+            "description": "Desired membership type submitted"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "call_scheduled",
+              "approved",
+              "declined"
+            ],
+            "type": "string",
+            "example": "pending",
+            "description": "Initial status of the application"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-04-08T17:00:26.529Z",
+            "description": "Timestamp when the application was created"
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "desiredMembershipType",
+          "status",
+          "createdAt"
+        ]
+      },
+      "ApplicantDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.doe@example.com"
+          },
+          "phone_number": {
+            "type": "string",
+            "nullable": true,
+            "example": "+420123456789"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email"
+        ]
+      },
+      "ProcessedByAdminDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 3
+          },
+          "name": {
+            "type": "string",
+            "example": "Admin User"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "ApplicationAdminDetailDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "desiredMembershipType": {
+            "enum": [
+              "community",
+              "supporter",
+              "member"
+            ],
+            "type": "string",
+            "example": "member"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "call_scheduled",
+              "approved",
+              "declined"
+            ],
+            "type": "string",
+            "example": "pending"
+          },
+          "motivation": {
+            "type": "string",
+            "nullable": true,
+            "example": "Some motivation text"
+          },
+          "additionalData": {
+            "type": "object",
+            "nullable": true,
+            "description": "Specific data based on membership type",
+            "example": {
+              "city": "Prague"
+            }
+          },
+          "callScheduledAt": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "example": "2024-04-15T10:00:00.000Z"
+          },
+          "decisionNotes": {
+            "type": "string",
+            "nullable": true,
+            "description": "Notes added by the admin during processing"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-04-08T17:00:26.529Z"
+          },
+          "updatedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-04-08T18:30:00.123Z"
+          },
+          "user": {
+            "description": "Details of the applicant",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ApplicantDto"
+              }
+            ]
+          },
+          "processedByAdmin": {
+            "nullable": true,
+            "description": "Admin who processed the application",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ProcessedByAdminDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "desiredMembershipType",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "user"
+        ]
+      },
+      "PaginatedApplicationResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "description": "Array of application objects for the current page",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApplicationAdminDetailDto"
+            }
+          },
+          "total": {
+            "type": "number",
+            "example": 2,
+            "description": "Total number of applications matching the query"
+          },
+          "page": {
+            "type": "number",
+            "example": 1,
+            "description": "Current page number"
+          },
+          "limit": {
+            "type": "number",
+            "example": 10,
+            "description": "Number of items per page"
+          }
+        },
+        "required": [
+          "data",
+          "total",
+          "page",
+          "limit"
+        ]
+      },
+      "ScheduleCallDto": {
+        "type": "object",
+        "properties": {
+          "callScheduledAt": {
+            "type": "string",
+            "example": "2024-12-31T14:30:00Z",
+            "description": "Date and time when the call is scheduled (ISO 8601 format)"
+          }
+        },
+        "required": [
+          "callScheduledAt"
+        ]
+      },
+      "DecisionDto": {
+        "type": "object",
+        "properties": {
+          "decisionNotes": {
+            "type": "string",
+            "maxLength": 5000,
+            "description": "Optional notes regarding the decision (approval/decline)"
+          }
+        }
+      },
+      "RoleDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "member"
+          },
+          "name": {
+            "type": "string",
+            "example": "Party Member"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ]
+      },
+      "UserProfileResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe Updated"
+          },
+          "email": {
+            "type": "string",
+            "example": "john.doe@example.com"
+          },
+          "phone_number": {
+            "type": "string",
+            "nullable": true,
+            "example": "+420123456789"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://example.com/avatar.jpg"
+          },
+          "location": {
+            "type": "string",
+            "nullable": true,
+            "example": "Prague, Czech Republic"
+          },
+          "bio": {
+            "type": "string",
+            "nullable": true,
+            "example": "Passionate developer..."
+          },
+          "tags": {
+            "nullable": true,
+            "example": [
+              "nestjs",
+              "typescript"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "roles": {
+            "description": "Roles assigned to the user",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RoleDto"
+            }
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-04-09T10:00:00.000Z"
+          },
+          "email_verified_at": {
+            "format": "date-time",
+            "type": "string",
+            "nullable": true,
+            "example": "2024-04-09T10:30:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "created_at"
+        ]
+      },
+      "UpdateProfileDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "User's full name",
+            "example": "John Doe Updated"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "maxLength": 512,
+            "format": "uri",
+            "description": "URL of the user's avatar image",
+            "example": "https://example.com/avatar.jpg"
+          },
+          "location": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "User's location (e.g., city, country)",
+            "example": "Prague, Czech Republic"
+          },
+          "bio": {
+            "type": "string",
+            "description": "Short user biography",
+            "example": "Passionate developer..."
+          },
+          "tags": {
+            "maxItems": 10,
+            "description": "Array of user tags/interests (max 10)",
+            "example": [
+              "nestjs",
+              "typescript",
+              "politics"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "description": "User's current password",
+            "minLength": 8
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 100,
+            "pattern": "/^(?=.*\\d)(?=.*[a-z])(?=.*[A-Z]).{8,}$/",
+            "description": "New password (at least 8 characters, one uppercase, one lowercase, one number)",
+            "example": "NewSecurePa$$w0rd"
+          },
+          "confirmPassword": {
+            "type": "string",
+            "description": "Confirmation of the new password",
+            "minLength": 8
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword",
+          "confirmPassword"
+        ]
+      },
+      "CreateGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "Name of the group",
+            "example": "Marketing Team"
+          },
+          "description": {
+            "type": "string",
+            "description": "Optional description for the group",
+            "example": "Responsible for marketing campaigns."
+          },
+          "initialMemberEmails": {
+            "description": "Optional array of emails of users to add as initial members",
+            "example": [
+              "member1@example.com",
+              "member2@example.com"
+            ],
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "email"
+            }
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "GroupBasicResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Marketing Team"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Responsible for marketing campaigns."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-04-09T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt"
+        ]
+      },
+      "CreatedByUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 5
+          },
+          "name": {
+            "type": "string",
+            "example": "Group Creator"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "MemberUserDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 10
+          },
+          "name": {
+            "type": "string",
+            "example": "Jane Doe"
+          },
+          "avatarUrl": {
+            "type": "string",
+            "nullable": true,
+            "example": "https://example.com/jane.jpg"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ]
+      },
+      "MemberRoleDto": {
+        "type": "object",
+        "properties": {
+          "slug": {
+            "type": "string",
+            "example": "member"
+          },
+          "name": {
+            "type": "string",
+            "example": "Member"
+          }
+        },
+        "required": [
+          "slug",
+          "name"
+        ]
+      },
+      "GroupMemberResponseDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/MemberUserDto"
+          },
+          "role": {
+            "$ref": "#/components/schemas/MemberRoleDto"
+          },
+          "joinedAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-04-09T10:00:00.000Z"
+          }
+        },
+        "required": [
+          "user",
+          "role",
+          "joinedAt"
+        ]
+      },
+      "GroupDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Marketing Team"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "example": "Responsible for marketing campaigns."
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string",
+            "example": "2024-04-09T10:00:00.000Z"
+          },
+          "createdByUser": {
+            "nullable": true,
+            "description": "User who created the group",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CreatedByUserDto"
+              }
+            ]
+          },
+          "members": {
+            "description": "List of group members and their roles",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupMemberResponseDto"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "members"
+        ]
+      },
+      "UpdateGroupDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255,
+            "description": "New name for the group",
+            "example": "Digital Marketing Team"
+          },
+          "description": {
+            "type": "string",
+            "description": "New description for the group",
+            "example": "Focusing on online presence."
+          }
+        }
+      },
+      "UpdateMemberRoleDto": {
+        "type": "object",
+        "properties": {
+          "roleSlug": {
+            "type": "string",
+            "enum": [
+              "leader",
+              "member"
+            ],
+            "description": "Slug of the new role to assign to the member",
+            "example": "member"
+          }
+        },
+        "required": [
+          "roleSlug"
+        ]
+      }
+    }
+  }
+}

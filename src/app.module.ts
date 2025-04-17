@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
@@ -13,6 +13,15 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { ProfileModule } from './profile/profile.module';
 import { GroupModule } from './group/group.module';
+import { Group } from './database/entities/group.entity';
+import { GroupMembership } from './database/entities/group-membership.entity';
+import { RequestLoggerMiddleware } from './core/middleware/request-logger.middleware';
+import { StripeModule } from './stripe/stripe.module';
+import { PaymentsModule } from './payments/payments.module';
+import { Contribution } from './database/entities/contribution.entity';
+import { User } from './database/entities/user.entity';
+import { Role } from './database/entities/role.entity';
+import { Application } from './database/entities/application.entity';
 
 @Module({
   imports: [
@@ -35,6 +44,7 @@ import { GroupModule } from './group/group.module';
           ssl: databaseUrl?.includes('sslmode=require')
             ? { rejectUnauthorized: false }
             : false,
+          entities: [User, Role, Application, Group, GroupMembership, Contribution],
         };
       },
     }),
@@ -61,6 +71,8 @@ import { GroupModule } from './group/group.module';
     SharedModule,
     ProfileModule,
     GroupModule,
+    StripeModule,
+    PaymentsModule,
     // Other modules will be added here later
   ],
   controllers: [AppController],
@@ -73,4 +85,10 @@ import { GroupModule } from './group/group.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+    configure(consumer: MiddlewareConsumer) {
+        consumer
+            .apply(RequestLoggerMiddleware)
+            .forRoutes('*');
+    }
+}

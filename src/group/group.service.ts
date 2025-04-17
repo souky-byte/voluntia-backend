@@ -17,6 +17,7 @@ import { User } from '../database/entities/user.entity';
 import { CreateGroupDto } from './dto/create-group.dto';
 import { UpdateGroupDto } from './dto/update-group.dto';
 import { UpdateMemberRoleDto } from './dto/update-member-role.dto';
+import { In } from 'typeorm';
 
 // Define PaginatedGroupsResult similar to users/applications
 export interface PaginatedGroupsResult {
@@ -86,28 +87,29 @@ export class GroupService implements OnModuleInit {
   // --- Core Service Methods ---
 
   async createGroup(userId: number, dto: CreateGroupDto): Promise<Group> {
-    // Find creator and leader role BEFORE transaction
+    // Find creator and roles BEFORE transaction
     const creator = await this.userRepository.findOneBy({ id: userId });
     if (!creator) throw new NotFoundException(`User with ID ${userId} not found`);
 
     const leaderRole = await this.findGroupRoleOrFail(this.LEADER_ROLE_SLUG);
+    const memberRole = await this.findGroupRoleOrFail(this.DEFAULT_MEMBER_ROLE_SLUG);
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // Use pre-fetched creator and leaderRole
       // 1. Create Group
       const newGroup = queryRunner.manager.create(Group, {
-          ...dto,
+          name: dto.name,
+          description: dto.description,
           createdByUser: creator,
           createdByUserId: userId,
       });
       const savedGroup = await queryRunner.manager.save(Group, newGroup);
 
       // 2. Add creator as leader
-      const initialMembership = queryRunner.manager.create(GroupMembership, {
+      const creatorMembership = queryRunner.manager.create(GroupMembership, {
           user: creator,
           userId: userId,
           group: savedGroup,
@@ -115,11 +117,40 @@ export class GroupService implements OnModuleInit {
           role: leaderRole,
           groupRoleId: leaderRole.id,
       });
-      await queryRunner.manager.save(GroupMembership, initialMembership);
+      await queryRunner.manager.save(GroupMembership, creatorMembership);
+
+      // 3. Add initial members (if provided)
+      const addedMemberIds = new Set<number>([userId]); // Keep track to avoid duplicates
+      if (dto.initialMemberEmails && dto.initialMemberEmails.length > 0) {
+          this.logger.log(`Adding initial members to group ${savedGroup.id}: ${dto.initialMemberEmails.join(', ')}`);
+          // Find users by email within the transaction
+          const usersToAdd = await queryRunner.manager.find(User, {
+              where: { email: In(dto.initialMemberEmails) },
+          });
+
+          for (const user of usersToAdd) {
+              if (addedMemberIds.has(user.id)) {
+                  this.logger.warn(`User ${user.email} (ID: ${user.id}) is the creator or already added, skipping.`);
+                  continue; // Skip creator or duplicates
+              }
+              const memberMembership = queryRunner.manager.create(GroupMembership, {
+                  user: user,
+                  userId: user.id,
+                  group: savedGroup,
+                  groupId: savedGroup.id,
+                  role: memberRole,
+                  groupRoleId: memberRole.id,
+              });
+              await queryRunner.manager.save(GroupMembership, memberMembership);
+              addedMemberIds.add(user.id);
+              this.logger.log(`Added user ${user.email} (ID: ${user.id}) as member to group ${savedGroup.id}`);
+          }
+      }
 
       await queryRunner.commitTransaction();
-      this.logger.log(`Group '${savedGroup.name}' (ID: ${savedGroup.id}) created by user ${userId}`);
-      // Return group without memberships for this specific response maybe?
+      this.logger.log(`Group '${savedGroup.name}' (ID: ${savedGroup.id}) created by user ${userId} with initial members.`);
+
+      // Return group (อาจจะต้องโหลด memberships ใหม่ถ้าต้องการให้ response je obsahoval)
       return savedGroup;
 
     } catch (error) {

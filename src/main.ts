@@ -6,9 +6,13 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as fs from 'fs'; // Import Node.js file system module
+import { NestExpressApplication } from '@nestjs/platform-express'; // Import NestExpressApplication from @nestjs/platform-express
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(
+    AppModule,
+    { rawBody: true },
+  );
 
   // Use Helmet with customized CSP for Swagger CDN
   app.use(
